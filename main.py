@@ -5,28 +5,35 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import platform
-
 import matplotlib.font_manager as fm
 import platform
 
 # 폰트 설정 함수
-def setup_korean_font():
-    # 업로드하신 폰트 파일 이름
+def set_korean_font():
+    # 1. 업로드한 폰트 파일 이름 (정확해야 함)
     font_file = "NanumGothic-Regular.ttf"
     font_path = os.path.join(os.getcwd(), font_file)
-
+    
     if os.path.exists(font_path):
-        # 폰트 등록
-        font_name = fm.FontProperties(fname=font_path).get_name()
-        plt.rc('font', family=font_name)
-        # 마이너스 기호 깨짐 방지
+        # 2. 폰트 매니저에 폰트 추가
+        font_bin = fm.FontEntry(
+            fname=font_path, 
+            name='NanumGothic' # 사용할 이름 설정
+        )
+        fm.fontManager.ttflist.insert(0, font_bin)
+        
+        # 3. Matplotlib 기본 설정에 적용
+        plt.rc('font', family='NanumGothic')
+        
+        # 4. 마이너스 기호가 깨지는 현상 방지
         plt.rcParams['axes.unicode_minus'] = False
         return True
     else:
+        st.error(f"폰트 파일 '{font_file}'을 찾을 수 없습니다. GitHub에 파일을 업로드했는지 확인해주세요.")
         return False
-# 앱 시작 부분에서 실행
-font_success = setup_korean_font()
 
+# 폰트 설정 실행
+set_korean_font()
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
