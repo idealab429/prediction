@@ -25,7 +25,7 @@ def setup_korean_font():
     else:
         return False
 # 앱 시작 부분에서 실행
-set_korean_font()
+font_success = setup_korean_font()
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
