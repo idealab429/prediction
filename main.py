@@ -111,7 +111,7 @@ if st.button("데이터 전처리 실행"):
         X = X[X.columns[sfs.get_support()]]
         
         st.session_state.processed_data = {'X': X, 'y': y}
-        st.success(f"✅ 전처리 완료! 모델 가중치 조정을 사용합니다.")
+        st.success(f"✅ 전처리 완료!")
 
 # ==========================================
 # 3. 데이터 나누기 및 모델 설정
