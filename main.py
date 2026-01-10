@@ -6,15 +6,31 @@ import seaborn as sns
 import os
 import platform
 
-# 한글 폰트 설정 (그래프 깨짐 방지 시도)
-if platform.system() == 'Darwin': # Mac
-    plt.rc('font', family='AppleGothic')
-elif platform.system() == 'Windows': # Windows
-    plt.rc('font', family='Malgun Gothic')
-else: # Linux (Streamlit Cloud 등)
-    plt.rc('font', family='NanumGothic')
+import matplotlib.font_manager as fm
+import platform
 
-plt.rcParams['axes.unicode_minus'] = False # 마이너스 기호 깨짐 방지
+# 폰트 설정 함수
+def set_korean_font():
+    system_name = platform.system()
+    
+    if system_name == 'Darwin': # Mac
+        plt.rc('font', family='AppleGothic')
+    elif system_name == 'Windows': # Windows
+        plt.rc('font', family='Malgun Gothic')
+    else: # Linux (Streamlit Cloud 포함)
+        # 1단계에서 설치한 나눔 고딕을 설정
+        try:
+            # 폰트 경로를 직접 지정하거나 폰트 이름으로 설정
+            plt.rc('font', family='NanumGothic')
+        except:
+            # 만약 폰트 이름으로 안될 경우를 대비
+            st.warning("나눔 폰트를 찾을 수 없어 기본 폰트를 사용합니다.")
+
+    # 마이너스 기호 깨짐 방지
+    plt.rcParams['axes.unicode_minus'] = False
+
+# 앱 시작 부분에서 실행
+set_korean_font()
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
