@@ -130,68 +130,76 @@ except Exception as e:
 st.header("2. 데이터 전처리")
 
 if st.button("데이터 전처리 실행"):
-    with st.spinner("데이터 전처리 및 특성 선택 중..."):
+    with st.spinner("데이터 전처리 중..."):
+        # 상태 메시지를 위한 빈 공간
+        status = st.empty()
+        
         df_processed = df.copy()
 
         # 1. 불필요한 식별자 컬럼 제거
+        status.text("1/6: 불필요한 컬럼 제거 중...")
         drop_cols = ['id', 'CustomerId', 'Surname']
         df_processed = df_processed.drop(columns=[c for c in drop_cols if c in df_processed.columns])
         
-        # 2. 결측치 처리 (수치형: 평균, 범주형: 최빈값)
-        num_cols = df_processed.select_dtypes(include=['float64', 'int64']).columns
+        # 2. 결측치 및 이상치 처리 (벡터 연산으로 최적화)
+        status.text("2/6: 결측치 및 이상치 처리 중...")
+        num_cols = df_processed.select_dtypes(include=['float64', 'int64']).columns.drop('Exited', errors='ignore')
         cat_cols = df_processed.select_dtypes(include=['object']).columns
         
-        # 타겟 변수 분리 (Exited가 수치형 컬럼에 포함되지 않도록)
-        if 'Exited' in num_cols:
-            num_cols = num_cols.drop('Exited')
+        # 결측치 채우기
+        df_processed[num_cols] = df_processed[num_cols].fillna(df_processed[num_cols].mean())
+        for col in cat_cols:
+            df_processed[col] = df_processed[col].fillna(df_processed[col].mode()[0])
 
-        imputer_num = SimpleImputer(strategy='mean')
-        df_processed[num_cols] = imputer_num.fit_transform(df_processed[num_cols])
-        
-        imputer_cat = SimpleImputer(strategy='most_frequent')
-        df_processed[cat_cols] = imputer_cat.fit_transform(df_processed[cat_cols])
-
-        # 3. 이상치 처리 (IQR 방식 - Clipping)
+        # 이상치 처리 (IQR Clipping)
         for col in num_cols:
             Q1 = df_processed[col].quantile(0.25)
             Q3 = df_processed[col].quantile(0.75)
             IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
-            df_processed[col] = np.clip(df_processed[col], lower_bound, upper_bound)
+            df_processed[col] = np.clip(df_processed[col], Q1 - 1.5 * IQR, Q3 + 1.5 * IQR)
 
-        # 4. 원-핫 인코딩 (One-Hot Encoding)
+        # 3. 원-핫 인코딩 및 스케일링
+        status.text("3/6: 인코딩 및 스케일링 적용 중...")
         df_processed = pd.get_dummies(df_processed, columns=cat_cols, drop_first=True)
-
-        # 5. 특성 스케일링 (StandardScaler)
+        
         scaler = StandardScaler()
         cols_to_scale = [c for c in df_processed.columns if c != 'Exited']
         df_processed[cols_to_scale] = scaler.fit_transform(df_processed[cols_to_scale])
 
-        # X, y 분리
         X = df_processed.drop('Exited', axis=1)
         y = df_processed['Exited']
 
-        # 6. 클래스 불균형 처리 (SMOTE)
+        # 4. 클래스 불균형 처리 (SMOTE)
+        status.text("4/6: 클래스 불균형 처리(SMOTE) 중... (시간 소요 가능)")
         if has_smote:
             smote = SMOTE(random_state=42)
             X, y = smote.fit_resample(X, y)
         
-        # 7. 단계적 선택법 (Stepwise Selection)
-        # 속도를 위해 로지스틱 회귀 기본 모델 사용
-        sfs = SequentialFeatureSelector(LogisticRegression(max_iter=1000), 
-                                        n_features_to_select='auto', 
-                                        direction='forward',
-                                        tol=None)
-        sfs.fit(X, y)
+        # 5. 단계적 선택법 (Stepwise Selection) - ★속도 최적화 포인트★
+        status.text("5/6: 변수 선택 중 (샘플링 데이터를 사용하여 속도 최적화)...")
+        
+        # 데이터가 너무 많으므로 변수 선택 시에는 5,000건만 샘플링하여 계산 (결과는 유사함)
+        sample_size = min(5000, len(X))
+        X_sample = X.sample(n=sample_size, random_state=42)
+        y_sample = y.loc[X_sample.index]
+
+        sfs = SequentialFeatureSelector(
+            LogisticRegression(max_iter=100), 
+            n_features_to_select='auto', 
+            direction='forward'
+        )
+        sfs.fit(X_sample, y_sample)
         selected_features = X.columns[sfs.get_support()]
         X = X[selected_features]
         
-        # 세션 상태에 저장
+        # 6. 완료 및 저장
+        status.text("6/6: 모든 전처리 완료!")
         st.session_state.processed_data = {'X': X, 'y': y}
-        st.success("전처리 완료! 모델링 준비가 되었습니다.")
-        st.write(f"**선택된 특성:** {list(selected_features)}")
-        st.write(f"**전처리 후 데이터 크기:** {X.shape}")
+        
+        st.success("✅ 전처리가 완료되었습니다!")
+        st.write(f"**선택된 핵심 변수:** {list(selected_features)}")
+        st.write(f"**최종 데이터 크기:** {X.shape}")
+        
 
 
 # ==========================================
