@@ -6,8 +6,6 @@ import seaborn as sns
 import os
 import matplotlib.font_manager as fm
 
-import streamlit as st
-
 def password_check():
     if st.session_state.get("authenticated"):
         return
@@ -24,6 +22,7 @@ def password_check():
     st.stop()
 
 password_check()
+
 # ==========================================
 # 0. 한글 폰트 설정
 # ==========================================
