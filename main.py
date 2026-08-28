@@ -6,6 +6,24 @@ import seaborn as sns
 import os
 import matplotlib.font_manager as fm
 
+import streamlit as st
+
+def password_check():
+    if st.session_state.get("authenticated"):
+        return
+
+    password = st.text_input("비밀번호를 입력하세요", type="password")
+
+    if password:
+        if password == st.secrets["APP_PASSWORD"]:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("비밀번호가 올바르지 않습니다.")
+
+    st.stop()
+
+password_check()
 # ==========================================
 # 0. 한글 폰트 설정
 # ==========================================
